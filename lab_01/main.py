@@ -4,9 +4,10 @@ from faker import Faker
 
 COUNT_CLIENTS = 1000
 
+
 # Устанавливаем соединение с вашей базой данных
 conn = psycopg2.connect(
-    database="autoservice",
+    database="postgres",
     user="postgres",
     password="1564",
     host="127.0.0.1",
