@@ -1,35 +1,67 @@
 import psycopg2
 import random
 from faker import Faker
-
-COUNT_CLIENTS = 1000
-
-
-# Устанавливаем соединение с вашей базой данных
-conn = psycopg2.connect(
-    database="postgres",
-    user="postgres",
-    password="1564",
-    host="127.0.0.1",
-    port="5432",
-)
-
-fake = Faker(locale="ru_RU")  # Убедитесь, что эта строка присутствует в вашем скрипте
-
-# Подключение к базе данных PostgreSQL (предполагая, что база данных уже создана)
-cursor = conn.cursor()
+from prettytable import PrettyTable
+import csv
 
 
-def main():
+fake = Faker(locale="ru_RU")
+
+
+try:
+    # Устанавливаем соединение с вашей базой данных
+    conn = psycopg2.connect(
+        database="postgres",  # postgres
+        user="postgres",
+        password="1564",
+        host="127.0.0.1",
+        port="5432",
+    )
+    # Подключение к базе данных PostgreSQL (предполагая, что база данных уже создана)
+    cursor = conn.cursor()
+except Exception as e:
+    print(f"Не удалось подключиться к базе данных: {e}")
+
+
+def endConneting(conn):
+    # Сохранение изменений и закрытие соединения
+    conn.commit()
+    conn.close()
+
+
+END = "7"
+DROPTABLE = "1"
+INSERTRANDOMDATA = "2"
+CREATETABLES = "3"
+PRINTTABLE = "4"
+DROPONETABLE = "5"
+INPUTCOUNTROWS = "0"
+SAVETOCSV = "6"
+
+
+def printMenu():
+    menu_text = """
+    ========== МЕНЮ --- Автосервис ==========
+    0 | Ввести кол-во записей в таблицы
+    1 | Удалить все таблицы (c потерей данных)
+    2 | Заполнить таблицы рандомными данными 
+       (удаляет предыдущие таблицы с данными и создает новые)
+    3 | Создать таблицы
+    4 | Вывод таблицы
+    5 | Удалить определенные таблицы (c потерей данных)
+    6 | Сохранить данные в CSV
+    7 | Выход
+
+    Введите число (1, 2, 3, 4, 5, 6 или 7) для выбора опции из меню:
+    """
+    print(menu_text)
+    rc = input("> ")
+    return rc
+
+
+def insertRandomData(count):
     try:
-        dropAll()
-        createTables(cursor)
-    except Exception as e:
-        print(f"Ошибка при инициализации базы данных: {e}")
-        return 1
-
-    try:
-        client_ids = insertRandomClients(cursor, fake, COUNT_CLIENTS)
+        client_ids = insertRandomClients(cursor, fake, count)
         if not client_ids:
             raise ValueError("Ошибка вставки данных в таблицу clients")
     except Exception as e:
@@ -38,7 +70,7 @@ def main():
         return 1
 
     try:
-        cars_ids = insertRandomCars(cursor, fake, COUNT_CLIENTS, client_ids)
+        cars_ids = insertRandomCars(cursor, fake, count, client_ids)
         if not cars_ids:
             raise ValueError("Ошибка вставки данных в таблицу cars")
     except Exception as e:
@@ -47,7 +79,7 @@ def main():
         return 1
 
     try:
-        master_ids = insertRandomMasters(cursor, fake, COUNT_CLIENTS)
+        master_ids = insertRandomMasters(cursor, fake, count)
         if not master_ids:
             raise ValueError("Ошибка вставки данных в таблицу master")
     except Exception as e:
@@ -56,7 +88,7 @@ def main():
         return 1
 
     try:
-        services_ids = insertRandomServices(cursor, fake, COUNT_CLIENTS)
+        services_ids = insertRandomServices(cursor, fake, count)
         if not services_ids:
             raise ValueError("Ошибка вставки данных в таблицу services_id")
     except Exception as e:
@@ -66,7 +98,7 @@ def main():
 
     try:
         orders_ids = insertRandomOrder(
-            cursor, fake, COUNT_CLIENTS, [cars_ids, client_ids, services_ids]
+            cursor, fake, count, [cars_ids, client_ids, services_ids]
         )
         if not orders_ids:
             raise ValueError("Ошибка вставки данных в таблицу orders_ids")
@@ -74,9 +106,181 @@ def main():
         print(f"Ошибка при вставке данных orders_ids: {e}")
         dropAll()
         return
+    return
 
-    print("Все таблицы успешно заполнены")
+
+def get_positive_integer():
+    while True:
+        try:
+            user_input = input("Введите положительное целое число: ")
+            number = int(user_input)
+            if number > 0:
+                return number
+            else:
+                print("Ошибка: число должно быть больше 0. Попробуйте еще раз.")
+        except ValueError:
+            print(
+                "Ошибка: введенное значение не является корректным числом. Попробуйте еще раз."
+            )
+
+
+def  saveToCSV(cursor):
+    for i in ["clients", "cars", "masters", "orders", "services"]:
+        
+        # Выберите данные, которые вы хотите экспортировать в CSV
+        cursor.execute(f"SELECT * FROM {i}")
+        
+        # Получите результаты запроса
+        rows = cursor.fetchall()
+
+        # Получите заголовки столбцов из описания курсора
+        column_names = [desc[0] for desc in cursor.description]
+
+        # Пишем данные в файл CSV
+        with open(f'{i}.csv', 'w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            
+            # Пишем заголовки столбцов
+            writer.writerow(column_names)
+            
+            # Пишем данные
+            writer.writerows(rows)
+
+        print("Data exported successfully!")
+    
+
+def main():
+    rc = INPUTCOUNTROWS
+    COUNT_CLIENTS = 1000
+    while rc != END:
+        rc = printMenu()
+
+        if rc == INPUTCOUNTROWS:
+            COUNT_CLIENTS = get_positive_integer()
+
+        elif rc == DROPTABLE:
+            try:
+                dropAll()
+            except Exception as e:
+                print(f"Ошибка при удаление таблиц: {e}")
+
+        elif rc == INSERTRANDOMDATA:
+            try:
+                dropAll()
+                createTables(cursor)
+            except Exception as e:
+                print(f"Ошибка при инициализации базы данных: {e}")
+
+            insertRandomData(COUNT_CLIENTS)
+            print("Все таблицы успешно заполнены")
+        elif rc == CREATETABLES:
+            try:
+                createTables(cursor)
+            except Exception as e:
+                print(f"Ошибка при инициализации базы данных: {e}")
+        elif rc == PRINTTABLE:
+            try:
+                printTable(cursor)
+            except Exception as e:
+                print(f"Ошибка при выводе: {e}")
+        elif rc == DROPONETABLE:
+            try:
+                delOneTable(cursor)
+            except Exception as e:
+                print(f"Ошибка при удаление таблиц: {e}")
+        elif rc == SAVETOCSV:
+            try:
+                saveToCSV(cursor)
+            except Exception as e:
+                print(f"Ошибка копирования: {e}")
+                
+        elif rc == END:
+            try:
+                endConneting(conn)
+                return 0
+
+            except Exception as e:
+                print(f"Ошибка: {e}")
+            
+        else:
+            print(f"Ошибка выбора меню")
+
     return 0
+
+
+def delOneTable(cursor):
+    menu_text = """
+        Выберите таблицу, которую хотите удалить :
+    1 | Таблица машин
+    2 | Таблица клиентов
+    3 | Таблица мастеров
+    4 | Таблица сервиса 
+    5 | Таблица заказов
+
+    Введите число (1, 2, 3, 4 или 5) для выбора опции из меню:
+    """
+    print(menu_text)
+    rc = input("> ")
+
+    match rc:
+        case "1":
+            dropTable(cursor, "cars")
+        case "2":
+            dropTable(cursor, "clients")
+        case "3":
+            dropTable(cursor, "masters")
+        case "4":
+            dropTable(cursor, "services")
+        case "5":
+            dropTable(cursor, "orders")
+        case _:
+            print("Неверный выбор. Пожалуйста, попробуйте снова.")
+
+
+def printTable(cursor):
+    menu_text = """
+        Выберите таблицу, которую хотите вывести:
+    1 | Таблица машин
+    2 | Таблица клиентов
+    3 | Таблица мастеров
+    4 | Таблица сервиса 
+    5 | Таблица заказов
+
+    Введите число (1, 2, 3, 4 или 5) для выбора опции из меню:
+    """
+    print(menu_text)
+    rc = input("> ")
+
+    match rc:
+        case "1":
+            printT(cursor, "cars")
+        case "2":
+            printT(cursor, "clients")
+        case "3":
+            printT(cursor, "masters")
+        case "4":
+            printT(cursor, "services")
+        case "5":
+            printT(cursor, "orders")
+        case _:
+            print("Неверный выбор. Пожалуйста, попробуйте снова.")
+
+
+def printT(cursor, name_table):
+    cursor.execute(f"SELECT * FROM {name_table}")
+    rows = cursor.fetchall()
+
+    x = PrettyTable()
+
+    # Получаем названия колонок
+    column_names = [desc[0] for desc in cursor.description]
+    x.field_names = column_names
+
+    for row in rows:
+        truncated_row = [str(cell)[:25] if isinstance(cell, str) else cell for cell in row]
+        x.add_row(truncated_row)
+
+    print(x)
 
 
 def dropTable(cursor, table_name):
@@ -465,7 +669,3 @@ def createTables(cursor):
 
 if __name__ == "__main__":
     main()
-
-# Сохранение изменений и закрытие соединения
-conn.commit()
-conn.close()

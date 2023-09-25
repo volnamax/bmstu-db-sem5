@@ -70,4 +70,61 @@
 - Статус заказа
 - Комментарии
 
-![Alt text](image.png)
+
+![Alt text](image-1.png)
+
+![Alt text](Untitled.png)
+
+```TEXT
+Table Clients {
+    ClientID SERIAL [primary key]
+    Name VARCHAR
+    SecondName VARCHAR
+    Telephone VARCHAR
+    Email VARCHAR
+    Addres VARCHAR
+}
+
+Table Cars{
+    CarID SERIAL [primary key]
+    ClientID INTEGER
+    Mark VARCHAR
+    Model VARCHAR
+    Year INTEGER
+    VIN VARCHAR
+  }
+
+Table Masters {
+    MasterID SERIAL [primary key]
+    Name VARCHAR
+    SecondName VARCHAR
+    Speciality VARCHAR
+    YearWork INTEGER
+    Telephone VARCHAR
+}
+
+Table Services {
+    ServiceID SERIAL [primary key]
+    Name VARCHAR
+    Description TEXT
+    Cost INTEGER
+    Duration INTEGER
+}
+
+Table Orders {
+    OrderID SERIAL [primary key]
+    CarID  INTEGER 
+    MasterID INTEGER
+    ServiceID INTEGER
+    DateOrder DATE 
+    StausOrder VARCHAR
+    Comment TEXT
+
+}
+
+
+Ref: Orders.MasterID > Masters.MasterID 
+Ref: Orders.CarID > Cars.CarID   
+Ref: Services.ServiceID -  Orders.ServiceID
+REf: Cars.ClientID - Clients.ClientID
+```
