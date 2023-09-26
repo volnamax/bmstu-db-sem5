@@ -71,9 +71,8 @@
 - Комментарии
 
 
-![Alt text](image-1.png)
-
-![Alt text](Untitled.png)
+![Alt text](img/image-1.png)
+![Alt text](img/Untitled.png)
 
 ```TEXT
 Table Clients {

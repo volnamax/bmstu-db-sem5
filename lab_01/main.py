@@ -11,8 +11,8 @@ fake = Faker(locale="ru_RU")
 try:
     # Устанавливаем соединение с вашей базой данных
     conn = psycopg2.connect(
-        database="postgres",  # postgres
-        user="postgres",
+        database="autoservice",  # postgres max
+        user="postgres", 
         password="1564",
         host="127.0.0.1",
         port="5432",
@@ -137,7 +137,7 @@ def  saveToCSV(cursor):
         column_names = [desc[0] for desc in cursor.description]
 
         # Пишем данные в файл CSV
-        with open(f'{i}.csv', 'w', newline='', encoding='utf-8') as f:
+        with open(f'lab_01/csv/{i}.csv', 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             
             # Пишем заголовки столбцов
