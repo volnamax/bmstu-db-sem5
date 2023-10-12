@@ -309,7 +309,7 @@ def insertRandomClients(cursor, fake, num_clients):
         address = fake.address()[:255]
 
         query = (
-            f"INSERT INTO Clients (Имя, Фамилия, Телефон, Email, Адрес) "
+            f"INSERT INTO Clients (name, second_name, phone, email, adress) "
             f"VALUES (%s, %s, %s, %s, %s) RETURNING ClientID"
         )
 
@@ -491,7 +491,7 @@ def insertRandomCars(cursor, fake, num_cars, client_ids):
         id_own = random.choice(client_ids)
         year = fake.year()
         vin = fake.vin()[:50]
-        query = f"INSERT INTO Cars (ClientID, Марка, Модель, Год_выпуска, VIN) VALUES (%s, %s, %s, %s, %s) RETURNING CarID"
+        query = f"INSERT INTO Cars (ClientID, mark, model, year, VIN) VALUES (%s, %s, %s, %s, %s) RETURNING CarID"
 
         try:
             cursor.execute(query, (id_own, mark, model, year, vin))
@@ -515,7 +515,7 @@ def insertRandomMasters(cursor, fake, num_master):
         year_job = random.randint(1, 20)
         phone = fake.phone_number()[:20]
 
-        query = f"INSERT INTO Masters (Имя, Фамилия, Специализация, Опыт_работы, Телефон) VALUES (%s, %s, %s, %s, %s) RETURNING MasterID"
+        query = f"INSERT INTO Masters (name, second_name, specialization, experience, phone) VALUES (%s, %s, %s, %s, %s) RETURNING MasterID"
 
         try:
             cursor.execute(query, (name, last_name, job, year_job, phone))
@@ -539,7 +539,7 @@ def insertRandomServices(cursor, fake, num_service):
         year_job = random.randint(1, 20)
         time = random.randint(1, 8)
 
-        query = f"INSERT INTO Services (Название, Описание, Стоимость, Продолжительность) VALUES (%s, %s, %s, %s) RETURNING ServiceID"
+        query = f"INSERT INTO Services (name, description, cost, duration) VALUES (%s, %s, %s, %s) RETURNING ServiceID"
 
         try:
             cursor.execute(query, (name, text_job, price, time))
@@ -555,7 +555,7 @@ def insertRandomServices(cursor, fake, num_service):
 
 def insertRandomOrder(cursor, fake, num_order, arr_info_ids):
     orders_ids = []
-    status = ["Ожидает", "В процессе", "Завершено", "Отменено"]
+    status = ["wait", "process", "done", "canceled"]
 
     car_ids = arr_info_ids[0]
     master_ids = arr_info_ids[1]
@@ -570,7 +570,7 @@ def insertRandomOrder(cursor, fake, num_order, arr_info_ids):
         year = fake.date()
         status_now = random.choice(status)
         text_my = fake.text()[:255]
-        query = f"INSERT INTO Orders (CarID, MasterID, ServiceID, Дата_заказа, Статус_заказа, Комментарии) VALUES (%s, %s, %s, %s, %s, %s) RETURNING OrderID"
+        query = f"INSERT INTO Orders (CarID, MasterID, ServiceID, date_order, status_order, comments) VALUES (%s, %s, %s, %s, %s, %s) RETURNING OrderID"
 
         try:
             cursor.execute(
@@ -582,7 +582,7 @@ def insertRandomOrder(cursor, fake, num_order, arr_info_ids):
                     year,
                     status_now,
                     text_my,
-                ),
+                ),  
             )
             orders_id = cursor.fetchone()
             if orders_id:
@@ -600,11 +600,11 @@ def createTables(cursor):
         """
     CREATE TABLE IF NOT EXISTS Clients (
         ClientID SERIAL PRIMARY KEY,
-        Имя VARCHAR(50) NOT NULL,
-        Фамилия VARCHAR(50) NOT NULL,
-        Телефон VARCHAR(20) NOT NULL, --проверка регуляркой 
-        Email VARCHAR(50),  -- UNIQUE Добавляем ограничение на уникальность Email
-        Адрес VARCHAR(255) CHECK (LENGTH(Адрес) <= 255) -- Ограничение длины поля Адрес
+        name VARCHAR(50) NOT NULL,
+        second_name VARCHAR(50) NOT NULL,
+        phone VARCHAR(20) NOT NULL, --проверка регуляркой 
+        email VARCHAR(50),  -- UNIQUE Добавляем ограничение на уникальность email
+        adress VARCHAR(255) CHECK (LENGTH(adress) <= 255) -- Ограничение длины поля adress
 
     )
     """
@@ -614,9 +614,9 @@ def createTables(cursor):
     CREATE TABLE IF NOT EXISTS Cars (
         CarID SERIAL PRIMARY KEY,
         ClientID INTEGER,
-        Марка VARCHAR(50) NOT NULL,
-        Модель VARCHAR(50) NOT NULL,
-        Год_выпуска INTEGER CHECK (Год_выпуска >= 1900 AND Год_выпуска <= EXTRACT(YEAR FROM NOW())),
+        mark VARCHAR(50) NOT NULL,
+        model VARCHAR(50) NOT NULL,
+        year INTEGER CHECK (year >= 1900 AND year <= EXTRACT(YEAR FROM NOW())),
         VIN VARCHAR(50) UNIQUE,
         FOREIGN KEY (ClientID) REFERENCES Clients(ClientID)
     )
@@ -627,11 +627,11 @@ def createTables(cursor):
         """
     CREATE TABLE IF NOT EXISTS Masters (
         MasterID SERIAL PRIMARY KEY,
-        Имя VARCHAR(50) NOT NULL,
-        Фамилия VARCHAR(50) NOT NULL,
-        Специализация VARCHAR(50) NOT NULL,
-        Опыт_работы INTEGER CHECK (Опыт_работы >= 0),
-        Телефон VARCHAR(20) --регулярочку бы 
+        name VARCHAR(50) NOT NULL,
+        second_name VARCHAR(50) NOT NULL,
+        specialization VARCHAR(50) NOT NULL,
+        experience INTEGER CHECK (experience >= 0),
+        phone VARCHAR(20) --регулярочку бы 
     )
     """
     )
@@ -640,10 +640,10 @@ def createTables(cursor):
         """
     CREATE TABLE IF NOT EXISTS Services (
         ServiceID SERIAL PRIMARY KEY,
-        Название VARCHAR(50) NOT NULL,
-        Описание TEXT NOT NULL ,
-        Стоимость INTEGER CHECK (Стоимость >1),
-        Продолжительность INTEGER CHECK (Продолжительность > 0)
+        name VARCHAR(50) NOT NULL,
+        description TEXT NOT NULL ,
+        cost INTEGER CHECK (cost >1),
+        duration INTEGER CHECK (duration > 0)
     )
     """
     )
@@ -655,9 +655,9 @@ def createTables(cursor):
         CarID  INTEGER NOT NULL,
         MasterID INTEGER NOT NULL,
         ServiceID INTEGER NOT NULL,
-        Дата_заказа DATE NOT NULL,
-        Статус_заказа VARCHAR(50) NOT NULL CHECK (Статус_заказа IN ('Ожидает', 'В процессе', 'Завершено', 'Отменено')),
-        Комментарии TEXT ,
+        date_order DATE NOT NULL,
+        status_order VARCHAR(50) NOT NULL CHECK (status_order IN ('wait', 'process', 'done', 'canceled')),
+        comments TEXT ,
         FOREIGN KEY (CarID) REFERENCES Cars(CarID),
         FOREIGN KEY (MasterID) REFERENCES Masters(MasterID),
         FOREIGN KEY (ServiceID) REFERENCES Services(ServiceID)
